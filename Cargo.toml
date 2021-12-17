@@ -1,5 +1,5 @@
 [package]
-name = "more-money-rs"
+name = "more-money"
 version = "0.1.0"
 edition = "2021"
 
