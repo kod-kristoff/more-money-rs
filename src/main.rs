@@ -1,4 +1,23 @@
+use more_money::{make_plan, mbind, mreturn, run_plan, List};
+
+fn select(lst: List<i32>) -> (i32, List<i32>) {
+    let i = lst.front().unwrap();
+    (*i, lst.popped_front())
+}
 fn main() {
+    example_plan();
+    example_identity();
+    example_pair();
+}
+fn example_plan() {
+    let sel = make_plan(select);
+    let pl = mbind(sel.clone(), move |i| {
+        mbind(sel.clone(), move |j| mreturn((i, j)))
+    });
+    let st = List::cons(1, &List::cons(2, &List::from_value(3)));
+    println!("example: {:?}", run_plan(pl, st));
+}
+fn example_identity() {
     println!("Identity!");
 
     let id1 = Identity::of(5);
@@ -8,7 +27,8 @@ fn main() {
     println!("{:?}", id1);
     println!("{:?}", id2);
     println!("{:?}", id3);
-
+}
+fn example_pair() {
     println!("Pair!");
 
     let p1 = Pair::of((1, 2));
