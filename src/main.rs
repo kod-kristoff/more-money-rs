@@ -1,4 +1,4 @@
-use more_money::{make_plan, mbind, mreturn, run_plan, List};
+use more_money::List;
 
 fn select(lst: List<i32>) -> (i32, List<i32>) {
     let i = lst.front().unwrap();
@@ -10,6 +10,7 @@ fn main() {
     example_pair();
 }
 fn example_plan() {
+    use more_money::state::{make_plan, mbind, mreturn, run_plan};
     let sel = make_plan(select);
     let pl = mbind(sel.clone(), move |i| {
         mbind(sel.clone(), move |j| mreturn((i, j)))
