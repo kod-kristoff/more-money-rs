@@ -1,22 +1,122 @@
-use more_money::List;
-
-fn select(lst: List<i32>) -> (i32, List<i32>) {
-    let i = lst.front().unwrap();
-    (*i, lst.popped_front())
-}
 fn main() {
-    example_plan();
+    puzzle::run();
+    example_plan::run();
     example_identity();
     example_pair();
 }
-fn example_plan() {
-    use more_money::state::{make_plan, mbind, mreturn, run_plan};
-    let sel = make_plan(select);
-    let pl = mbind(sel.clone(), move |i| {
-        mbind(sel.clone(), move |j| mreturn((i, j)))
-    });
-    let st = List::cons(1, &List::cons(2, &List::from_value(3)));
-    println!("example: {:?}", run_plan(pl, st));
+
+pub mod puzzle {
+    use more_money::{
+        statelist::{guard, make_state_list, mbind, mreturn, run_state_list, PairList, StateList},
+        List,
+    };
+
+    use persi_ds::sync::list::for_each;
+
+    fn select(lst: List<i32>) -> PairList<i32> {
+        if lst.is_empty() {
+            return PairList::new();
+        }
+        let x = lst.front().unwrap();
+        let xs = lst.popped_front();
+
+        let mut result = PairList::new();
+        for p in select(xs.clone()).iter() {
+            let y = p.0;
+            let ys = p.1.clone();
+            result = result.pushed_front((y, ys.pushed_front(*x)));
+        }
+
+        result.pushed_front((*x, xs.clone()))
+    }
+
+    fn as_number(v: &[i32]) -> i32 {
+        let mut acc = 0;
+        for i in v {
+            acc = 10 * acc + i;
+        }
+        acc
+    }
+    fn solve() -> StateList<(i32, i32, i32)> {
+        let sel = make_state_list(&select);
+
+        mbind(sel.clone(), move |s| {
+            let sel2 = sel.clone();
+            mbind(sel2.clone(), move |e| {
+                let sel3 = sel2.clone();
+                mbind(sel3.clone(), move |n| {
+                    let sel4 = sel3.clone();
+                    mbind(sel4.clone(), move |d| {
+                        let sel5 = sel4.clone();
+                        mbind(sel5.clone(), move |m| {
+                            let sel6 = sel5.clone();
+                            mbind(sel6.clone(), move |o| {
+                                let sel7 = sel6.clone();
+                                mbind(sel7.clone(), move |r| {
+                                    let sel8 = sel7.clone();
+                                    mbind(sel8, move |y| {
+                                        mbind(guard(s != 0 && m != 0), move |()| {
+                                            let send = as_number(&[s, e, n, d]);
+                                            let more = as_number(&[m, o, r, e]);
+                                            let money = as_number(&[m, o, n, e, y]);
+                                            mbind(guard(send + more == money), move |()| {
+                                                mreturn((send, more, money))
+                                            })
+                                        })
+                                    })
+                                })
+                            })
+                        })
+                    })
+                })
+            })
+        })
+    }
+    pub fn run() {
+        let lst = List::cons(
+            0,
+            &List::cons(
+                1,
+                &List::cons(
+                    2,
+                    &List::cons(
+                        3,
+                        &List::cons(
+                            4,
+                            &List::cons(
+                                5,
+                                &List::cons(
+                                    6,
+                                    &List::cons(7, &List::cons(8, &List::from_value(9))),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        );
+        let (s, _state) = run_state_list(solve(), lst).front().unwrap().clone();
+        println!("  send    {}", s.0);
+        println!("+ more  + {}", s.1);
+        println!("------  ----------");
+        println!(" money   {}", s.2);
+    }
+}
+pub mod example_plan {
+    use more_money::List;
+    fn select(lst: List<i32>) -> (i32, List<i32>) {
+        let i = lst.front().unwrap();
+        (*i, lst.popped_front())
+    }
+    pub fn run() {
+        use more_money::state::{make_plan, mbind, mreturn, run_plan};
+        let sel = make_plan(select);
+        let pl = mbind(sel.clone(), move |i| {
+            mbind(sel.clone(), move |j| mreturn((i, j)))
+        });
+        let st = List::cons(1, &List::cons(2, &List::from_value(3)));
+        println!("example: {:?}", run_plan(pl, st));
+    }
 }
 fn example_identity() {
     println!("Identity!");
