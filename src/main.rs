@@ -1,17 +1,21 @@
 fn main() {
     puzzle::run();
+    puzzle::run2();
     example_plan::run();
     example_identity();
     example_pair();
 }
 
 pub mod puzzle {
+    use std::time::Instant;
+
     use more_money::{
         statelist::{guard, make_state_list, mbind, mreturn, run_state_list, PairList, StateList},
         List,
     };
 
-    use persi_ds::sync::list::for_each;
+    use persi_ds::{synced_list, unsync::rb_map::RBMap};
+    type Map = RBMap<char, i32>;
 
     fn select(lst: List<i32>) -> PairList<i32> {
         if lst.is_empty() {
@@ -37,6 +41,67 @@ pub mod puzzle {
         }
         acc
     }
+
+    fn nub(s: &str) -> String {
+        let mut result = Vec::new();
+
+        for c in s.chars() {
+            if let None = result.iter().find(|p| *p == &c) {
+                result.push(c);
+            }
+        }
+        result.iter().collect()
+    }
+
+    fn get(subst: &Map, c: char) -> i32 {
+        *subst.get_or_default(&c, &-1)
+    }
+
+    fn to_number(subst: &Map, s: &str) -> i32 {
+        let mut acc = 0;
+        for c in s.chars() {
+            let d = get(subst, c);
+            acc = 10 * acc + d;
+        }
+        acc
+    }
+    fn prune(subst: Map) -> StateList<(i32, i32, i32)> {
+        mbind(
+            guard(get(&subst, 's') != 0 && get(&subst, 'm') != 0),
+            move |()| {
+                let send = to_number(&subst, "send");
+                let more = to_number(&subst, "more");
+                let money = to_number(&subst, "money");
+                mbind(guard(send + more == money), move |()| {
+                    mreturn((send, more, money))
+                })
+            },
+        )
+    }
+    fn go(s: String, subst: Map, i: i32) -> StateList<(i32, i32, i32)> {
+        let sel = make_state_list(&select);
+
+        assert!(s.len() > 0);
+        if s.len() == 1 {
+            prune(subst.inserted(s.chars().take(1).next().unwrap(), i))
+        } else {
+            mbind(sel, move |n| {
+                let tail = s.chars().skip(1).collect();
+                go(
+                    tail,
+                    subst.inserted(s.chars().take(1).next().unwrap(), i),
+                    n,
+                )
+            })
+        }
+    }
+    fn solve2() -> StateList<(i32, i32, i32)> {
+        let sel = make_state_list(&select);
+
+        let subst = Map::new();
+        mbind(sel, move |s| go(nub("sendmoremoney"), subst.clone(), s))
+    }
+
     fn solve() -> StateList<(i32, i32, i32)> {
         let sel = make_state_list(&select);
 
@@ -73,33 +138,26 @@ pub mod puzzle {
         })
     }
     pub fn run() {
-        let lst = List::cons(
-            0,
-            &List::cons(
-                1,
-                &List::cons(
-                    2,
-                    &List::cons(
-                        3,
-                        &List::cons(
-                            4,
-                            &List::cons(
-                                5,
-                                &List::cons(
-                                    6,
-                                    &List::cons(7, &List::cons(8, &List::from_value(9))),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-            ),
-        );
+        let lst = synced_list![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        let now = Instant::now();
         let (s, _state) = run_state_list(solve(), lst).front().unwrap().clone();
+        let elapsed = now.elapsed();
         println!("  send    {}", s.0);
         println!("+ more  + {}", s.1);
-        println!("------  ----------");
+        println!("------  --------");
         println!(" money   {}", s.2);
+        println!("solve() took: {:?}", elapsed);
+    }
+    pub fn run2() {
+        let lst = synced_list![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        let now = Instant::now();
+        let (s, _state) = run_state_list(solve2(), lst).front().unwrap().clone();
+        let elapsed = now.elapsed();
+        println!("  send    {}", s.0);
+        println!("+ more  + {}", s.1);
+        println!("------  --------");
+        println!(" money   {}", s.2);
+        println!("solve2() took: {:?}", elapsed);
     }
 }
 pub mod example_plan {
