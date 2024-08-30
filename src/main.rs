@@ -43,14 +43,14 @@ pub mod puzzle {
     }
 
     fn nub(s: &str) -> String {
-        let mut result = Vec::new();
+        let mut result = String::new();
 
         for c in s.chars() {
-            if let None = result.iter().find(|p| *p == &c) {
+            if !result.contains(c) {
                 result.push(c);
             }
         }
-        result.iter().collect()
+        result
     }
 
     fn get(subst: &Map, c: char) -> i32 {
@@ -79,9 +79,10 @@ pub mod puzzle {
         )
     }
     fn go(s: String, subst: Map, i: i32) -> StateList<(i32, i32, i32)> {
+        assert!(s.len() > 0);
+
         let sel = make_state_list(&select);
 
-        assert!(s.len() > 0);
         if s.len() == 1 {
             prune(subst.inserted(s.chars().take(1).next().unwrap(), i))
         } else {
